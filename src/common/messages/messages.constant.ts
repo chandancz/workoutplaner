@@ -3,4 +3,5 @@ export const AUTH_MESSAGES = {
   LOGIN_SUCCESS: 'Login successful.',
   PROFILE_UPDATED: 'Profile updated successfully.',
   LOGOUT_SUCCESS: 'Logout successful.',
+  SEND_OTP:"OTP sent successfully"
 };

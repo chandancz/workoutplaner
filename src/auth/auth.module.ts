@@ -4,10 +4,11 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './jwt.strategy';
-
+import { RedisOtpModule } from 'src/redis/redis-otp.module';
 
 @Module({
   imports: [
+    RedisOtpModule,
     UsersModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'secret123',

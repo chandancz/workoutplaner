@@ -4,6 +4,8 @@ export const AUTH_ROUTES = {
   PHONE_LOGIN: 'phone-login',
   PROFILE: 'profile',
   LOGOUT: 'logout',
+  SEND_OTP:"send-otp",
+  VERIFY_OTP:"verify-otp"
 };
 
 export const USERS_ROUTES = {

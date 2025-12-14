@@ -38,16 +38,13 @@ export class AuthService {
   }
 
   async phoneLoginOrRegister(dto: LoginPhoneDto) {
-    // Check if user already exists
     let user = await this.usersService.findByPhone(dto.phone, dto.countryCode);
     let isNewUser = false
-    // If not found → create new user (Signup)
     if (!user) {
       try {
         user = await this.usersService.create(dto);
         isNewUser=true
       } catch (error) {
-        // If create fails due to duplicate (race condition), fetch the user again
         if (error.code === 11000) {
           user = await this.usersService.findByPhone(dto.phone, dto.countryCode);
         } else {
@@ -56,7 +53,6 @@ export class AuthService {
       }
     }
 
-    // Login → Generate Token
     return this.generateAuthResponse(user,isNewUser);
   }
 
