@@ -9,13 +9,15 @@ import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
-import { LoginPhoneDto } from './dto/login-phone.dto';
+import { LoginPhoneDto, VerifyOtpDto } from './dto/login-phone.dto';
+import { RedisOtpService } from 'src/redis/redis-otp.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+     private readonly redisOtpService: RedisOtpService,
   ) { }
 
   // USER REGISTER
@@ -100,8 +102,6 @@ export class AuthService {
     };
   }
 
-
-
   // USER LOGIN
   async login(dto: LoginDto) {
     const user = await this.usersService.findByEmail(dto.email);
@@ -119,9 +119,6 @@ export class AuthService {
   }
 
 
-
-
-
   async findById(id: string) {
     return this.usersService.findById(id);
   }
@@ -129,4 +126,38 @@ export class AuthService {
   async update(id: string, dto: any) {
     return this.usersService.update(id, dto);
   }
+
+
+  async verifyOtpAndLogin(dto: VerifyOtpDto) {
+    const { phone, countryCode } =
+      await this.redisOtpService.verifyOtp(dto.phone,dto.countryCode,dto.otp);
+    let user = await this.usersService.findByPhone(phone,countryCode);
+
+    let isNewUser = false;
+    
+    if (!user) {
+      user = await this.usersService.createUser(phone,countryCode);
+      isNewUser = true;
+    }
+
+    const token = this.jwtService.sign({
+      sub: user.id,
+      phone: user.phone,
+    });
+
+    return {
+      isNewUser,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        countryCode: user.countryCode,
+      },
+      accessToken: token,
+    };
+  }
+
+
+  
+
+
 }

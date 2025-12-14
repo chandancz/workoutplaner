@@ -1,40 +1,55 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class RedisOtpService {
-  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) { }
+  constructor(
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+  ) { }
 
-  async storeOtp(phone: string, countryCode: string, otp: string) {
-    const hashedOtp = await bcrypt.hash(otp, 10);
+  private buildKey(phone: string, countryCode: string): string {
+    return `otp:${countryCode}${phone}`;
+  }
+
+  // 🔐 Store OTP (5 minutes)
+  async storeOtp(
+    phone: string,
+    countryCode: string,
+    otp: string,
+  ): Promise<void> {
+    const key = this.buildKey(phone, countryCode);
+    await this.cache.set(key, otp, { ttl: 300 } as any);
+    console.log('OTP stored:', otp);
+  }
+
+  // ✅ Verify OTP
+  async verifyOtp(phone: string, countryCode: string, otp: string,): Promise<{ phone: string; countryCode: string }> {
     const key = this.buildKey(phone, countryCode);
 
-    // Store
-    await this.cache.set(key, hashedOtp);
+    const storedOtp = await this.cache.get<string>(key);
+    if (!storedOtp) {
+      throw new BadRequestException('OTP expired or invalid');
+    }
 
-    // Retrieve
-    const storedOtp = await this.cache.get(key);
+    if (storedOtp !== otp) {
+      throw new BadRequestException('Invalid OTP');
+    }
 
-    console.log("Stored OTP hash:", hashedOtp);
-    console.log("Retrieved OTP hash:", storedOtp);
+    await this.cache.del(key);
 
-    return storedOtp;
+    return { phone, countryCode };
+  }
+
+
+  async clearOtp(phone: string, countryCode: string): Promise<void> {
+    const key = this.buildKey(phone, countryCode);
+    await this.cache.del(key);
   }
 
   async getOtp(phone: string, countryCode: string) {
     const key = this.buildKey(phone, countryCode);
     const otp = await this.cache.get<string>(key);
-    console.log("Fetched OTP hash:", otp);
+    console.log('Fetched OTP:', otp);
     return otp;
-  }
-
-  async clearOtp(phone: string, countryCode: string) {
-    const key = this.buildKey(phone, countryCode);
-    await this.cache.del(key);
-  }
-
-  private buildKey(phone: string, countryCode: string): string {
-    return `otp:${countryCode}${phone}`;
   }
 }

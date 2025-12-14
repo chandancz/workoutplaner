@@ -2,14 +2,13 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } fro
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { JwtStrategy } from 'src/auth/jwt.strategy';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { USERS_ROUTES } from 'src/common/constants/routes.constant';
 import { AuthGuard } from '@nestjs/passport';
+import { VerifysOtpDto } from './dto/verify-otp.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -31,7 +30,7 @@ export class UsersController {
   }
 
   @Post(USERS_ROUTES.VERIFY_OTP)
-  verifyOtp(@Body() dto: VerifyOtpDto) {
+  verifyOtp(@Body() dto: VerifysOtpDto) {
     return this.usersService.verifyOtp(dto);
   }
 

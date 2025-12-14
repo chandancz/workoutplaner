@@ -26,6 +26,11 @@ export class User {
   @Prop()
   deviceToken?: string;
 
+
+  @Prop({ default: false })
+  isActive?: boolean;
+
+
   @Prop({ type: Number })
   resetOtp?: number | null;
 

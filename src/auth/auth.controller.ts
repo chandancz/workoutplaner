@@ -17,7 +17,6 @@ import { LoginPhoneDto, VerifyOtpDto } from './dto/login-phone.dto';
 import { AUTH_ROUTES } from 'src/common/constants/routes.constant';
 import { AuthGuard } from '@nestjs/passport';
 import { RedisOtpService } from 'src/redis/redis-otp.service';
-import { AUTH_MESSAGES } from 'src/common/messages/messages.constant';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -39,46 +38,23 @@ export class AuthController {
     return this.authService.phoneLoginOrRegister(dto);
   }
 
-  @Post(AUTH_ROUTES.SEND_OTP)
-  @ApiOperation({ summary: 'Send OTP' })
-  async sendOtp(@Body() dto: LoginPhoneDto) {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    await this.redisOtpService.storeOtp(dto.phone, dto.countryCode, otp);
-    console.log("OTP sent:", otp);
-    return { message: AUTH_MESSAGES.SEND_OTP, otp };
-  }
-
- @Post(AUTH_ROUTES.VERIFY_OTP)
-@ApiOperation({ summary: 'Verify OTP' })
-async verifyOtp(@Body() dto: VerifyOtpDto) {
-  console.log(dto,'[====>dto')
-  const { phone, countryCode, otp } = dto;
-  // Get stored OTP from Redis
-
-  const storedOtp = await this.redisOtpService.getOtp(phone, countryCode);
-
-  console.log(storedOtp,'[===>storedOtp')
-
-  if (!storedOtp) {
-    throw new BadRequestException('OTP expired or not found');
-  }
-
-  if (storedOtp !== otp) {
-    throw new BadRequestException('Invalid OTP');
-  }
-
-  // If OTP is correct, delete it from Redis
-  await this.redisOtpService.clearOtp(phone, countryCode);
-
-  return { message: 'OTP verified successfully' };
-}
-
-
-
   @Post(AUTH_ROUTES.LOGIN)
   @ApiOperation({ summary: 'Login user' })
   loginUser(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Post(AUTH_ROUTES.SEND_OTP)
+  async sendOtp(@Body() dto: LoginPhoneDto) {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await this.redisOtpService.storeOtp(dto.phone, dto.countryCode, otp,);
+    console.log('OTP sent:', otp);
+    return { message: 'OTP sent successfully',otp };
+  }
+
+  @Post(AUTH_ROUTES.VERIFY_OTP)
+  async verifyOtp(@Body() dto: VerifyOtpDto) {
+    return this.authService.verifyOtpAndLogin(dto);
   }
 
   @UseGuards(AuthGuard('jwt'))
