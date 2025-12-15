@@ -13,10 +13,12 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/create-auth.dto';
 import { UpdateProfileDto } from './dto/update-auth.dto';
-import { LoginPhoneDto, VerifyOtpDto } from './dto/login-phone.dto';
+import { ChangePhoneDto, LoginPhoneDto, VerifyOtpDto } from './dto/login-phone.dto';
 import { AUTH_ROUTES } from 'src/common/constants/routes.constant';
 import { AuthGuard } from '@nestjs/passport';
 import { RedisOtpService } from 'src/redis/redis-otp.service';
+import { UsersService } from 'src/users/users.service';
+import { JwtService } from '@nestjs/jwt';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -24,6 +26,8 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly redisOtpService: RedisOtpService,
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
   ) { }
 
   @Post(AUTH_ROUTES.REGISTER)
@@ -49,7 +53,7 @@ export class AuthController {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     await this.redisOtpService.storeOtp(dto.phone, dto.countryCode, otp,);
     console.log('OTP sent:', otp);
-    return { message: 'OTP sent successfully',otp };
+    return { message: 'OTP sent successfully', otp };
   }
 
   @Post(AUTH_ROUTES.VERIFY_OTP)
@@ -80,4 +84,41 @@ export class AuthController {
   logout(@Req() req) {
     return this.authService.update(req.user.id, { deviceToken: null });
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @Post(AUTH_ROUTES.CHANGE_PHONE)
+  @ApiOperation({ summary: 'Change phone number' })
+  async changePhoneNumber(@Req() req, @Body() loginPhoneDto: ChangePhoneDto) {
+    const { phone, countryCode } = loginPhoneDto;
+
+    const existingUser = await this.usersService.findByPhone(phone, countryCode);
+    if (existingUser) {
+      throw new BadRequestException('Phone number already in use');
+    }
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await this.redisOtpService.storeOtpPhone(phone, countryCode, otp, req.user.id);
+    return { message: 'OTP sent successfully', otp };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @Post(AUTH_ROUTES.VERIFY_PHONE)
+  @ApiOperation({ summary: 'Verify otp change phone number' })
+  async verifyChangePhoneNumber(@Req() req, @Body() changePhoneDto: VerifyOtpDto) {
+    const { phone, countryCode, otp } = changePhoneDto;
+    const data = await this.redisOtpService.verifyOtpPhone(req.user.id, phone, countryCode, otp,);
+
+    const User: any = await this.usersService.findById(req.user.id)
+    User.phone = data.phone;
+    User.countryCode = data.countryCode;
+
+    const token = this.jwtService.sign({
+      sub: User.id,
+      phone: User.phone,
+    });
+
+    return { message: 'phone change successfully', access_token: token };
+  }
+
 }

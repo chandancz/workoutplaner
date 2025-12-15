@@ -5,7 +5,9 @@ export const AUTH_ROUTES = {
   PROFILE: 'profile',
   LOGOUT: 'logout',
   SEND_OTP:"send-otp",
-  VERIFY_OTP:"verify-otp"
+  VERIFY_OTP:"verify-otp",
+  CHANGE_PHONE:'change-phone-number',
+  VERIFY_PHONE:'verify-otp-phone'
 };
 
 export const USERS_ROUTES = {
