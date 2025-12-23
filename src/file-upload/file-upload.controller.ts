@@ -16,6 +16,9 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import Busboy from 'busboy';
+import * as fs from 'fs';
+import * as path from 'path';
+import mime from 'mime-types';
 
 @Controller('file-upload')
 export class FileUploadController {
@@ -84,5 +87,56 @@ export class FileUploadController {
     });
 
     stream.pipe(res);
+  }
+
+
+   @Get('video/:filename')
+  @ApiOperation({ summary: 'Stream video in chunks (YouTube style)' })
+  @ApiResponse({ status: 206, description: 'Partial Content (video chunk)' })
+  streamVideo(
+    @Param('filename') filename: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const videoPath = path.join(process.cwd(), 'uploads', filename);
+
+    if (!fs.existsSync(videoPath)) {
+      return res.status(404).send('Video not found');
+    }
+
+    const stat = fs.statSync(videoPath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    if (!range) {
+      // Browser MUST send range
+      res.status(416).send('Range header required');
+      return;
+    }
+
+    // ✅ Parse range
+    const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB (YouTube sends small chunks)
+    const start = Number(range.replace(/\D/g, ''));
+    const end = Math.min(start + CHUNK_SIZE, fileSize - 1);
+
+    const contentLength = end - start + 1;
+    const contentType =
+      mime.lookup(videoPath) || 'video/mp4';
+
+    // ✅ Required headers for streaming
+    res.writeHead(206, {
+      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': contentLength,
+      'Content-Type': contentType,
+    });
+
+    // ✅ Stream only requested chunk
+    const videoStream = fs.createReadStream(videoPath, {
+      start,
+      end,
+    });
+
+    videoStream.pipe(res);
   }
 }
