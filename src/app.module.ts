@@ -8,6 +8,7 @@ import * as Joi from 'joi';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware';
+import { FileUploadModule } from './file-upload/file-upload.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { RequestLoggerMiddleware } from './common/middleware/request-logger.midd
 
     UsersModule,
     AuthModule,
+    FileUploadModule,
   ],
 })
 export class AppModule implements NestModule {
