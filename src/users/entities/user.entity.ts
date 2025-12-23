@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Role } from 'src/common/enums/role.enum';
 
 @Schema({ timestamps: true })
 export class User {
@@ -36,6 +37,13 @@ export class User {
 
   @Prop({ type: Number })
   resetOtpExpire?: number | null;
+
+  @Prop({
+    type: String,
+    enum: Role,
+    default: Role.USER,
+  })
+  role: Role;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
